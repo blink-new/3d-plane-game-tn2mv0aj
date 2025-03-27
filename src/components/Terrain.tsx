@@ -100,7 +100,7 @@ export function Terrain({ position, type }: { position: [number, number, number]
             </mesh>
           </group>
         )
-      ))}
+      })}
     </>
   )
 
