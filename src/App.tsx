@@ -9,13 +9,13 @@ import './App.css'
 export default function App() {
   return (
     <div className="game-container">
-      <Canvas shadows camera={{ position: [0, 2, 10], fov: 75 }}>
+      <Canvas shadows camera={{ position: [0, 5, 20], fov: 60 }}>
         <Suspense fallback={null}>
           <Game />
           <Sky 
             distance={450000} 
-            sunPosition={[0, 1, 0]} 
-            inclination={0.5} 
+            sunPosition={[1, 2, 1]} 
+            inclination={0.6} 
             azimuth={0.25} 
           />
           <Stars radius={100} depth={50} count={5000} factor={4} />
@@ -35,13 +35,19 @@ export default function App() {
             />
           ))}
           
-          <ambientLight intensity={0.5} />
+          {/* Brighter lighting */}
+          <ambientLight intensity={1.5} />
           <directionalLight
             castShadow
-            position={[10, 10, 10]}
-            intensity={1.5}
+            position={[2, 5, 2]}
+            intensity={2}
             shadow-mapSize-width={1024}
             shadow-mapSize-height={1024}
+          />
+          {/* Additional fill light from front */}
+          <directionalLight 
+            position={[0, 2, 5]} 
+            intensity={1.5} 
           />
         </Suspense>
       </Canvas>
