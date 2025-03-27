@@ -1,62 +1,58 @@
 
 import { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
 import { Plane } from './Plane'
 import { Ring } from './Ring'
+import * as THREE from 'three'
 
 export function Game() {
   const planeRef = useRef<THREE.Group>(null)
   const [score, setScore] = useState(0)
-  const mousePosition = useRef({ x: 0, y: 0 })
-
-  // Generate some rings in interesting positions
-  const rings = [
-    [0, 0, -10],
-    [5, 2, -20],
-    [-5, -2, -30],
-    [0, 4, -40],
-    [0, -4, -50],
-  ] as const
-
-  // Handle mouse movement
-  const handleMouseMove = (event: MouseEvent) => {
-    mousePosition.current = {
-      x: (event.clientX / window.innerWidth) * 2 - 1,
-      y: -(event.clientY / window.innerHeight) * 2 + 1
-    }
-  }
-
-  // Add mouse move listener
-  useState(() => {
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  })
+  const [speed, setSpeed] = useState(0)
+  const [gameOver, setGameOver] = useState(false)
 
   useFrame((state, delta) => {
-    if (!planeRef.current) return
+    if (gameOver || !planeRef.current) return
 
-    // Update plane position based on mouse
-    const targetX = mousePosition.current.x * 10
-    const targetY = mousePosition.current.y * 5
+    // Basic flight controls
+    const plane = planeRef.current
+    const moveSpeed = 0.1
+    
+    if (keys['ArrowUp']) plane.position.y += moveSpeed
+    if (keys['ArrowDown']) plane.position.y -= moveSpeed
+    if (keys['ArrowLeft']) {
+      plane.rotation.z += 0.02
+      plane.position.x -= moveSpeed
+    }
+    if (keys['ArrowRight']) {
+      plane.rotation.z -= 0.02
+      plane.position.x += moveSpeed
+    }
 
-    planeRef.current.position.x += (targetX - planeRef.current.position.x) * 0.1
-    planeRef.current.position.y += (targetY - planeRef.current.position.y) * 0.1
+    // Forward movement
+    plane.position.z -= 0.2
+    setSpeed(0.2 * 100) // Convert to display units
 
-    // Add a slight forward tilt based on vertical movement
-    planeRef.current.rotation.z = -(targetX - planeRef.current.position.x) * 0.2
-    planeRef.current.rotation.x = (targetY - planeRef.current.position.y) * 0.2
+    // Auto-level the plane
+    plane.rotation.z *= 0.95
+  })
 
-    // Move plane forward
-    planeRef.current.position.z -= 5 * delta
+  const keys: { [key: string]: boolean } = {}
+  
+  window.addEventListener('keydown', (e) => {
+    keys[e.key] = true
+  })
+  
+  window.addEventListener('keyup', (e) => {
+    keys[e.key] = false
   })
 
   return (
     <>
-      <Plane ref={planeRef} />
-      {rings.map((position, index) => (
-        <Ring key={index} position={position} />
-      ))}
+      <Plane ref={planeRef} position={[0, 0, 5]} />
+      <Ring position={[0, 0, -10]} />
+      <Ring position={[2, 1, -20]} />
+      <Ring position={[-2, -1, -30]} />
     </>
   )
 }
