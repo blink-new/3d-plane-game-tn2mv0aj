@@ -13,7 +13,7 @@ export function Game() {
   const planeRef = useRef<THREE.Group>(null)
   const worldRef = useRef<THREE.Group>(null)
   const [score, setScore] = useState(0)
-  const [speed, setSpeed] = useState(1)
+  const [speed, setSpeed] = useState(0.5) // Start slower
   const mousePos = useRef(new Vector2())
   const targetRotation = useRef(new Vector3())
   const { viewport } = useThree()
@@ -23,7 +23,7 @@ export function Game() {
     const t = i * 0.5
     return [
       Math.sin(t) * 20,
-      10 + Math.cos(t * 2) * 5,
+      15 + Math.cos(t * 2) * 5, // Raised height
       -i * 20
     ] as [number, number, number]
   })
@@ -40,19 +40,19 @@ export function Game() {
   useFrame((state, delta) => {
     if (!planeRef.current || !worldRef.current) return
 
-    // Update plane rotation based on mouse position
-    const targetX = mousePos.current.x * 0.5
-    const targetY = mousePos.current.y * 0.5
+    // More gentle rotation based on mouse position
+    const targetX = mousePos.current.x * 0.3
+    const targetY = mousePos.current.y * 0.3
 
     planeRef.current.rotation.z = THREE.MathUtils.lerp(
       planeRef.current.rotation.z,
       -targetX * 0.5,
-      0.1
+      0.05
     )
     planeRef.current.rotation.x = THREE.MathUtils.lerp(
       planeRef.current.rotation.x,
       -targetY * 0.3,
-      0.1
+      0.05
     )
 
     // Move the world instead of the plane
@@ -68,8 +68,8 @@ export function Game() {
       0.01
     )
 
-    // Increase speed gradually
-    setSpeed(prev => Math.min(prev + delta * 0.01, 2))
+    // Increase speed very gradually
+    setSpeed(prev => Math.min(prev + delta * 0.005, 1.5))
 
     // Check ring collisions
     const planePos = new Vector3()
@@ -84,7 +84,9 @@ export function Game() {
           <Ring key={i} position={pos} />
         ))}
       </group>
-      <Plane ref={planeRef} />
+      <group position={[0, 0, 0]}>
+        <Plane ref={planeRef} />
+      </group>
     </>
   )
 }
