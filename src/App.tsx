@@ -1,56 +1,48 @@
 
 import { Canvas } from '@react-three/fiber'
-import { Sky, Stars, Cloud, OrbitControls } from '@react-three/drei'
-import { Suspense } from 'react'
-import { Game } from './components/Game'
-import { HUD } from './components/HUD'
-import './App.css'
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
+import { Airplane } from './components/Airplane'
+import { Terrain } from './components/Terrain'
+import { Rings } from './components/Rings'
 
-export default function App() {
+function App() {
   return (
-    <div className="game-container">
-      <Canvas
-        gl={{ antialias: true }}
-        camera={{ position: [0, 5, 20], fov: 75 }}
-        style={{ background: '#87CEEB' }} // Light blue sky color
-      >
-        <color attach="background" args={['#87CEEB']} />
-        
-        <Suspense fallback={null}>
-          <Game />
-          
-          {/* Bright daylight scene setup */}
-          <ambientLight intensity={1} />
-          <directionalLight 
-            position={[10, 10, 5]} 
-            intensity={2} 
-            castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-          />
-          <hemisphereLight 
-            intensity={1} 
-            groundColor="#553c1b"
-          />
-
-          {/* Sky and environment */}
-          <Sky 
-            distance={450000} 
-            sunPosition={[1, 1, 0]} 
-            inclination={0.6} 
-            azimuth={0.25} 
-          />
-
-          {/* Debug controls - remove in production */}
-          <OrbitControls />
-        </Suspense>
-      </Canvas>
-      <HUD />
-      <div className="controls-hint">
-        Move your mouse to control the plane!
-        <br />
-        Try to fly through the rings
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <div style={{
+        position: 'absolute',
+        bottom: 20,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'rgba(0,0,0,0.7)',
+        color: 'white',
+        padding: '1rem 2rem',
+        borderRadius: '8px',
+        textAlign: 'center'
+      }}>
+        <p style={{ margin: 0, fontSize: '1.2rem' }}>Move your mouse to control the plane!</p>
+        <p style={{ margin: '0.5rem 0 0 0' }}>Try to fly through the rings</p>
       </div>
+
+      <Canvas shadows>
+        <PerspectiveCamera makeDefault position={[0, 5, 10]} />
+        <OrbitControls enableZoom={false} />
+        
+        <ambientLight intensity={0.5} />
+        <directionalLight
+          castShadow
+          position={[10, 10, 5]}
+          intensity={1.5}
+          shadow-mapSize={[1024, 1024]}
+        />
+        
+        <Airplane position={[0, 0, 0]} />
+        <Rings />
+        <Terrain position={[0, -20, -50]} type="canyon" />
+        
+        <fog attach="fog" args={['#c7d9e8', 30, 100]} />
+      </Canvas>
     </div>
   )
 }
+
+export default App
