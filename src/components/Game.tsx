@@ -6,42 +6,46 @@ import { Plane } from './Plane'
 import { Ring } from './Ring'
 import { Cloud } from './Cloud'
 import { Mountain } from './Mountain'
+import { Terrain } from './Terrain'
+import { Obstacle } from './Obstacle'
 
 export function Game() {
   const planeRef = useRef<THREE.Group>(null)
   const [score, setScore] = useState(0)
   const mousePosition = useRef({ x: 0, y: 0 })
-  const ringsRef = useRef<Array<[number, number, number]>>([])
+  const terrainRef = useRef<Array<{ position: [number, number, number], type: 'canyon' | 'forest' | 'city' }>>([])
+  const obstaclesRef = useRef<Array<{ position: [number, number, number], type: 'ring' | 'floating' | 'moving' }>>([])
   const cloudsRef = useRef<Array<[number, number, number]>>([])
-  const mountainsRef = useRef<Array<[number, number, number]>>([])
   
-  const RING_COUNT = 5
-  const RING_SPACING = 15
+  const TERRAIN_SEGMENTS = 4
+  const TERRAIN_SPACING = 30
+  const OBSTACLE_COUNT = 8
   const CLOUD_COUNT = 8
-  const MOUNTAIN_COUNT = 5
-  const GAME_SPEED = 25
+  const GAME_SPEED = 30
 
   // Initialize environment elements
   useEffect(() => {
-    // Initialize rings
-    ringsRef.current = Array.from({ length: RING_COUNT }, (_, i) => [
-      (Math.random() - 0.5) * 20,
-      (Math.random() - 0.5) * 10,
-      -RING_SPACING * i - 20
-    ])
+    // Initialize terrain segments
+    terrainRef.current = Array.from({ length: TERRAIN_SEGMENTS }, (_, i) => ({
+      position: [0, -5, -TERRAIN_SPACING * i],
+      type: ['canyon', 'forest', 'city'][Math.floor(Math.random() * 3)] as 'canyon' | 'forest' | 'city'
+    }))
+
+    // Initialize obstacles
+    obstaclesRef.current = Array.from({ length: OBSTACLE_COUNT }, () => ({
+      position: [
+        (Math.random() - 0.5) * 20,
+        1 + Math.random() * 8,
+        -(Math.random() * 100)
+      ],
+      type: ['ring', 'floating', 'moving'][Math.floor(Math.random() * 3)] as 'ring' | 'floating' | 'moving'
+    }))
 
     // Initialize clouds
     cloudsRef.current = Array.from({ length: CLOUD_COUNT }, () => [
       (Math.random() - 0.5) * 30,
-      5 + Math.random() * 15,
-      -(Math.random() * 80)
-    ])
-
-    // Initialize mountains in a more structured way
-    mountainsRef.current = Array.from({ length: MOUNTAIN_COUNT }, (_, i) => [
-      (Math.random() - 0.5) * 40,
-      -5,
-      -30 - i * 20
+      15 + Math.random() * 15,
+      -(Math.random() * 100)
     ])
   }, [])
 
@@ -60,30 +64,55 @@ export function Game() {
   useFrame((state, delta) => {
     if (!planeRef.current) return
 
-    // Update plane position based on mouse
-    const targetX = mousePosition.current.x * 10
-    const targetY = mousePosition.current.y * 5
+    // Update plane position with more responsive controls
+    const targetX = mousePosition.current.x * 15
+    const targetY = mousePosition.current.y * 8
 
     planeRef.current.position.x += (targetX - planeRef.current.position.x) * 0.1
     planeRef.current.position.y += (targetY - planeRef.current.position.y) * 0.1
 
-    // Add a slight tilt based on movement
-    planeRef.current.rotation.z = -(targetX - planeRef.current.position.x) * 0.2
-    planeRef.current.rotation.x = (targetY - planeRef.current.position.y) * 0.2
+    // More dramatic plane tilting
+    planeRef.current.rotation.z = -(targetX - planeRef.current.position.x) * 0.3
+    planeRef.current.rotation.x = (targetY - planeRef.current.position.y) * 0.3
+    planeRef.current.rotation.y = (targetX - planeRef.current.position.x) * 0.1
 
-    // Move rings
-    ringsRef.current = ringsRef.current.map(ring => {
-      let [x, y, z] = ring
+    // Move terrain
+    terrainRef.current = terrainRef.current.map(terrain => {
+      let [x, y, z] = terrain.position
       z += GAME_SPEED * delta
 
-      if (z > 5) {
-        return [
-          (Math.random() - 0.5) * 20,
-          (Math.random() - 0.5) * 10,
-          z - (RING_SPACING * RING_COUNT)
-        ]
+      if (z > 30) {
+        return {
+          position: [0, -5, z - (TERRAIN_SPACING * TERRAIN_SEGMENTS)],
+          type: ['canyon', 'forest', 'city'][Math.floor(Math.random() * 3)] as 'canyon' | 'forest' | 'city'
+        }
       }
-      return [x, y, z]
+      return { ...terrain, position: [x, y, z] }
+    })
+
+    // Move and animate obstacles
+    obstaclesRef.current = obstaclesRef.current.map(obstacle => {
+      let [x, y, z] = obstacle.position
+      z += GAME_SPEED * delta
+
+      // Add some movement to obstacles
+      if (obstacle.type === 'moving') {
+        x = Math.sin(state.clock.elapsedTime + z) * 10
+      } else if (obstacle.type === 'floating') {
+        y += Math.sin(state.clock.elapsedTime * 2 + x) * 0.05
+      }
+
+      if (z > 30) {
+        return {
+          position: [
+            (Math.random() - 0.5) * 20,
+            1 + Math.random() * 8,
+            z - 120
+          ],
+          type: ['ring', 'floating', 'moving'][Math.floor(Math.random() * 3)] as 'ring' | 'floating' | 'moving'
+        }
+      }
+      return { ...obstacle, position: [x, y, z] }
     })
 
     // Move clouds
@@ -91,25 +120,10 @@ export function Game() {
       let [x, y, z] = cloud
       z += GAME_SPEED * 0.6 * delta
 
-      if (z > 20) {
+      if (z > 30) {
         return [
           (Math.random() - 0.5) * 30,
-          5 + Math.random() * 15,
-          -80
-        ]
-      }
-      return [x, y, z]
-    })
-
-    // Move mountains
-    mountainsRef.current = mountainsRef.current.map(mountain => {
-      let [x, y, z] = mountain
-      z += GAME_SPEED * 0.8 * delta // Mountains move faster now
-
-      if (z > 20) {
-        return [
-          (Math.random() - 0.5) * 40,
-          -5,
+          15 + Math.random() * 15,
           -100
         ]
       }
@@ -121,34 +135,28 @@ export function Game() {
     <>
       <Plane ref={planeRef} />
       
-      {/* Render rings */}
-      {ringsRef.current.map((position, index) => (
-        <Ring key={`ring-${index}`} position={position} />
+      {/* Render terrain segments */}
+      {terrainRef.current.map((terrain, index) => (
+        <Terrain 
+          key={`terrain-${index}`} 
+          position={terrain.position}
+          type={terrain.type}
+        />
+      ))}
+      
+      {/* Render obstacles */}
+      {obstaclesRef.current.map((obstacle, index) => (
+        <Obstacle 
+          key={`obstacle-${index}`}
+          position={obstacle.position}
+          type={obstacle.type}
+        />
       ))}
       
       {/* Render clouds */}
       {cloudsRef.current.map((position, index) => (
         <Cloud key={`cloud-${index}`} position={position} />
       ))}
-
-      {/* Render mountains */}
-      {mountainsRef.current.map((position, index) => (
-        <Mountain key={`mountain-${index}`} position={position} />
-      ))}
-      
-      {/* Ground */}
-      <mesh 
-        rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -10, 0]}
-        receiveShadow
-      >
-        <planeGeometry args={[1000, 1000]} />
-        <meshStandardMaterial 
-          color="#263238" 
-          metalness={0.2}
-          roughness={0.8}
-        />
-      </mesh>
 
       {/* Enhanced lighting */}
       <ambientLight intensity={0.6} />
@@ -158,12 +166,10 @@ export function Game() {
         castShadow 
         shadow-mapSize={[2048, 2048]}
       />
-      <hemisphereLight 
-        args={["#87ceeb", "#383838", 0.8]} 
-      />
+      <hemisphereLight args={["#87ceeb", "#383838", 0.8]} />
 
-      {/* Reduced fog for better visibility */}
-      <fog attach="fog" args={['#87ceeb', 50, 150]} />
+      {/* Fog for atmosphere but not too thick */}
+      <fog attach="fog" args={['#87ceeb', 60, 140]} />
     </>
   )
 }
