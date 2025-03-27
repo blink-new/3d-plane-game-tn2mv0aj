@@ -1,92 +1,58 @@
 
-import { useRef, useState, useEffect } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { Vector2, Vector3 } from 'three'
+import { useRef, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Plane } from './Plane'
 import { Ring } from './Ring'
-import { Terrain } from './Terrain'
-import { createNoise2D } from 'simplex-noise'
-
-const noise2D = createNoise2D()
+import * as THREE from 'three'
 
 export function Game() {
   const planeRef = useRef<THREE.Group>(null)
-  const worldRef = useRef<THREE.Group>(null)
   const [score, setScore] = useState(0)
-  const [speed, setSpeed] = useState(0.5) // Start slower
-  const mousePos = useRef(new Vector2())
-  const targetRotation = useRef(new Vector3())
-  const { viewport } = useThree()
-
-  // Generate ring positions along a fun path
-  const ringPositions = Array.from({ length: 15 }, (_, i) => {
-    const t = i * 0.5
-    return [
-      Math.sin(t) * 20,
-      15 + Math.cos(t * 2) * 5, // Raised height
-      -i * 20
-    ] as [number, number, number]
-  })
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      mousePos.current.x = (event.clientX / window.innerWidth) * 2 - 1
-      mousePos.current.y = -(event.clientY / window.innerHeight) * 2 + 1
-    }
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  const [speed, setSpeed] = useState(0)
+  const [gameOver, setGameOver] = useState(false)
 
   useFrame((state, delta) => {
-    if (!planeRef.current || !worldRef.current) return
+    if (gameOver || !planeRef.current) return
 
-    // More gentle rotation based on mouse position
-    const targetX = mousePos.current.x * 0.3
-    const targetY = mousePos.current.y * 0.3
+    // Basic flight controls
+    const plane = planeRef.current
+    const moveSpeed = 0.1
+    
+    if (keys['ArrowUp']) plane.position.y += moveSpeed
+    if (keys['ArrowDown']) plane.position.y -= moveSpeed
+    if (keys['ArrowLeft']) {
+      plane.rotation.z += 0.02
+      plane.position.x -= moveSpeed
+    }
+    if (keys['ArrowRight']) {
+      plane.rotation.z -= 0.02
+      plane.position.x += moveSpeed
+    }
 
-    planeRef.current.rotation.z = THREE.MathUtils.lerp(
-      planeRef.current.rotation.z,
-      -targetX * 0.5,
-      0.05
-    )
-    planeRef.current.rotation.x = THREE.MathUtils.lerp(
-      planeRef.current.rotation.x,
-      -targetY * 0.3,
-      0.05
-    )
+    // Forward movement
+    plane.position.z -= 0.2
+    setSpeed(0.2 * 100) // Convert to display units
 
-    // Move the world instead of the plane
-    worldRef.current.position.z += speed
-    worldRef.current.position.x = THREE.MathUtils.lerp(
-      worldRef.current.position.x,
-      targetX * 10,
-      0.01
-    )
-    worldRef.current.position.y = THREE.MathUtils.lerp(
-      worldRef.current.position.y,
-      -targetY * 5,
-      0.01
-    )
+    // Auto-level the plane
+    plane.rotation.z *= 0.95
+  })
 
-    // Increase speed very gradually
-    setSpeed(prev => Math.min(prev + delta * 0.005, 1.5))
-
-    // Check ring collisions
-    const planePos = new Vector3()
-    planeRef.current.getWorldPosition(planePos)
+  const keys: { [key: string]: boolean } = {}
+  
+  window.addEventListener('keydown', (e) => {
+    keys[e.key] = true
+  })
+  
+  window.addEventListener('keyup', (e) => {
+    keys[e.key] = false
   })
 
   return (
     <>
-      <group ref={worldRef}>
-        <Terrain />
-        {ringPositions.map((pos, i) => (
-          <Ring key={i} position={pos} />
-        ))}
-      </group>
-      <group position={[0, 0, 0]}>
-        <Plane ref={planeRef} />
-      </group>
+      <Plane ref={planeRef} position={[0, 0, 5]} />
+      <Ring position={[0, 0, -10]} />
+      <Ring position={[2, 1, -20]} />
+      <Ring position={[-2, -1, -30]} />
     </>
   )
 }
