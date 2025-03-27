@@ -16,10 +16,10 @@ export function Game() {
   const mountainsRef = useRef<Array<[number, number, number]>>([])
   
   const RING_COUNT = 5
-  const RING_SPACING = 10
-  const CLOUD_COUNT = 15
-  const MOUNTAIN_COUNT = 8
-  const GAME_SPEED = 20
+  const RING_SPACING = 15
+  const CLOUD_COUNT = 8
+  const MOUNTAIN_COUNT = 5
+  const GAME_SPEED = 25
 
   // Initialize environment elements
   useEffect(() => {
@@ -27,21 +27,21 @@ export function Game() {
     ringsRef.current = Array.from({ length: RING_COUNT }, (_, i) => [
       (Math.random() - 0.5) * 20,
       (Math.random() - 0.5) * 10,
-      -RING_SPACING * i - 10
+      -RING_SPACING * i - 20
     ])
 
-    // Initialize clouds at random positions
+    // Initialize clouds
     cloudsRef.current = Array.from({ length: CLOUD_COUNT }, () => [
-      (Math.random() - 0.5) * 40,
-      10 + Math.random() * 10,
-      -(Math.random() * 100)
+      (Math.random() - 0.5) * 30,
+      5 + Math.random() * 15,
+      -(Math.random() * 80)
     ])
 
-    // Initialize mountains at random positions
-    mountainsRef.current = Array.from({ length: MOUNTAIN_COUNT }, () => [
-      (Math.random() - 0.5) * 100,
-      -10,
-      -(Math.random() * 100)
+    // Initialize mountains in a more structured way
+    mountainsRef.current = Array.from({ length: MOUNTAIN_COUNT }, (_, i) => [
+      (Math.random() - 0.5) * 40,
+      -5,
+      -30 - i * 20
     ])
   }, [])
 
@@ -71,7 +71,7 @@ export function Game() {
     planeRef.current.rotation.z = -(targetX - planeRef.current.position.x) * 0.2
     planeRef.current.rotation.x = (targetY - planeRef.current.position.y) * 0.2
 
-    // Move rings towards the player
+    // Move rings
     ringsRef.current = ringsRef.current.map(ring => {
       let [x, y, z] = ring
       z += GAME_SPEED * delta
@@ -86,30 +86,30 @@ export function Game() {
       return [x, y, z]
     })
 
-    // Move clouds towards the player
+    // Move clouds
     cloudsRef.current = cloudsRef.current.map(cloud => {
       let [x, y, z] = cloud
-      z += GAME_SPEED * 0.5 * delta // Clouds move slower than rings
+      z += GAME_SPEED * 0.6 * delta
 
       if (z > 20) {
         return [
-          (Math.random() - 0.5) * 40,
-          10 + Math.random() * 10,
-          -100
+          (Math.random() - 0.5) * 30,
+          5 + Math.random() * 15,
+          -80
         ]
       }
       return [x, y, z]
     })
 
-    // Move mountains towards the player
+    // Move mountains
     mountainsRef.current = mountainsRef.current.map(mountain => {
       let [x, y, z] = mountain
-      z += GAME_SPEED * 0.3 * delta // Mountains move even slower
+      z += GAME_SPEED * 0.8 * delta // Mountains move faster now
 
       if (z > 20) {
         return [
-          (Math.random() - 0.5) * 100,
-          -10,
+          (Math.random() - 0.5) * 40,
+          -5,
           -100
         ]
       }
@@ -136,7 +136,7 @@ export function Game() {
         <Mountain key={`mountain-${index}`} position={position} />
       ))}
       
-      {/* Ground plane */}
+      {/* Ground */}
       <mesh 
         rotation={[-Math.PI / 2, 0, 0]} 
         position={[0, -10, 0]}
@@ -144,22 +144,26 @@ export function Game() {
       >
         <planeGeometry args={[1000, 1000]} />
         <meshStandardMaterial 
-          color="#234" 
+          color="#263238" 
           metalness={0.2}
           roughness={0.8}
         />
       </mesh>
 
-      {/* Lighting */}
-      <ambientLight intensity={0.5} />
+      {/* Enhanced lighting */}
+      <ambientLight intensity={0.6} />
       <directionalLight 
-        position={[10, 10, 10]} 
-        intensity={1} 
+        position={[10, 20, 10]} 
+        intensity={1.5} 
         castShadow 
+        shadow-mapSize={[2048, 2048]}
+      />
+      <hemisphereLight 
+        args={["#87ceeb", "#383838", 0.8]} 
       />
 
-      {/* Add some fog for depth */}
-      <fog attach="fog" args={['#234', 30, 100]} />
+      {/* Reduced fog for better visibility */}
+      <fog attach="fog" args={['#87ceeb', 50, 150]} />
     </>
   )
 }
