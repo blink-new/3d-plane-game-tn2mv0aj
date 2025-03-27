@@ -1,6 +1,6 @@
 
 import { Canvas } from '@react-three/fiber'
-import { Sky, Stars, Cloud } from '@react-three/drei'
+import { Sky, Stars, Cloud, OrbitControls } from '@react-three/drei'
 import { Suspense } from 'react'
 import { Game } from './components/Game'
 import { HUD } from './components/HUD'
@@ -9,46 +9,40 @@ import './App.css'
 export default function App() {
   return (
     <div className="game-container">
-      <Canvas shadows camera={{ position: [0, 5, 20], fov: 60 }}>
+      <Canvas
+        gl={{ antialias: true }}
+        camera={{ position: [0, 5, 20], fov: 75 }}
+        style={{ background: '#87CEEB' }} // Light blue sky color
+      >
+        <color attach="background" args={['#87CEEB']} />
+        
         <Suspense fallback={null}>
           <Game />
+          
+          {/* Bright daylight scene setup */}
+          <ambientLight intensity={1} />
+          <directionalLight 
+            position={[10, 10, 5]} 
+            intensity={2} 
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+          />
+          <hemisphereLight 
+            intensity={1} 
+            groundColor="#553c1b"
+          />
+
+          {/* Sky and environment */}
           <Sky 
             distance={450000} 
-            sunPosition={[1, 2, 1]} 
+            sunPosition={[1, 1, 0]} 
             inclination={0.6} 
             azimuth={0.25} 
           />
-          <Stars radius={100} depth={50} count={5000} factor={4} />
-          
-          {/* Add some clouds for atmosphere */}
-          {Array.from({ length: 20 }).map((_, i) => (
-            <Cloud
-              key={i}
-              position={[
-                (Math.random() - 0.5) * 100,
-                20 + Math.random() * 10,
-                (Math.random() - 0.5) * 100
-              ]}
-              opacity={0.5}
-              speed={0.1}
-              width={10}
-            />
-          ))}
-          
-          {/* Brighter lighting */}
-          <ambientLight intensity={1.5} />
-          <directionalLight
-            castShadow
-            position={[2, 5, 2]}
-            intensity={2}
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
-          />
-          {/* Additional fill light from front */}
-          <directionalLight 
-            position={[0, 2, 5]} 
-            intensity={1.5} 
-          />
+
+          {/* Debug controls - remove in production */}
+          <OrbitControls />
         </Suspense>
       </Canvas>
       <HUD />
