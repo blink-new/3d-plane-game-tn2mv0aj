@@ -1,92 +1,62 @@
 
-import { useRef, useState, useEffect } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { Vector2, Vector3 } from 'three'
+import { useRef, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import { Plane } from './Plane'
 import { Ring } from './Ring'
-import { Terrain } from './Terrain'
-import { createNoise2D } from 'simplex-noise'
-
-const noise2D = createNoise2D()
 
 export function Game() {
   const planeRef = useRef<THREE.Group>(null)
-  const worldRef = useRef<THREE.Group>(null)
   const [score, setScore] = useState(0)
-  const [speed, setSpeed] = useState(0.5) // Start slower
-  const mousePos = useRef(new Vector2())
-  const targetRotation = useRef(new Vector3())
-  const { viewport } = useThree()
+  const mousePosition = useRef({ x: 0, y: 0 })
 
-  // Generate ring positions along a fun path
-  const ringPositions = Array.from({ length: 15 }, (_, i) => {
-    const t = i * 0.5
-    return [
-      Math.sin(t) * 20,
-      15 + Math.cos(t * 2) * 5, // Raised height
-      -i * 20
-    ] as [number, number, number]
-  })
+  // Generate some rings in interesting positions
+  const rings = [
+    [0, 0, -10],
+    [5, 2, -20],
+    [-5, -2, -30],
+    [0, 4, -40],
+    [0, -4, -50],
+  ] as const
 
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      mousePos.current.x = (event.clientX / window.innerWidth) * 2 - 1
-      mousePos.current.y = -(event.clientY / window.innerHeight) * 2 + 1
+  // Handle mouse movement
+  const handleMouseMove = (event: MouseEvent) => {
+    mousePosition.current = {
+      x: (event.clientX / window.innerWidth) * 2 - 1,
+      y: -(event.clientY / window.innerHeight) * 2 + 1
     }
+  }
+
+  // Add mouse move listener
+  useState(() => {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  })
 
   useFrame((state, delta) => {
-    if (!planeRef.current || !worldRef.current) return
+    if (!planeRef.current) return
 
-    // More gentle rotation based on mouse position
-    const targetX = mousePos.current.x * 0.3
-    const targetY = mousePos.current.y * 0.3
+    // Update plane position based on mouse
+    const targetX = mousePosition.current.x * 10
+    const targetY = mousePosition.current.y * 5
 
-    planeRef.current.rotation.z = THREE.MathUtils.lerp(
-      planeRef.current.rotation.z,
-      -targetX * 0.5,
-      0.05
-    )
-    planeRef.current.rotation.x = THREE.MathUtils.lerp(
-      planeRef.current.rotation.x,
-      -targetY * 0.3,
-      0.05
-    )
+    planeRef.current.position.x += (targetX - planeRef.current.position.x) * 0.1
+    planeRef.current.position.y += (targetY - planeRef.current.position.y) * 0.1
 
-    // Move the world instead of the plane
-    worldRef.current.position.z += speed
-    worldRef.current.position.x = THREE.MathUtils.lerp(
-      worldRef.current.position.x,
-      targetX * 10,
-      0.01
-    )
-    worldRef.current.position.y = THREE.MathUtils.lerp(
-      worldRef.current.position.y,
-      -targetY * 5,
-      0.01
-    )
+    // Add a slight forward tilt based on vertical movement
+    planeRef.current.rotation.z = -(targetX - planeRef.current.position.x) * 0.2
+    planeRef.current.rotation.x = (targetY - planeRef.current.position.y) * 0.2
 
-    // Increase speed very gradually
-    setSpeed(prev => Math.min(prev + delta * 0.005, 1.5))
-
-    // Check ring collisions
-    const planePos = new Vector3()
-    planeRef.current.getWorldPosition(planePos)
+    // Move plane forward
+    planeRef.current.position.z -= 5 * delta
   })
 
   return (
     <>
-      <group ref={worldRef}>
-        <Terrain />
-        {ringPositions.map((pos, i) => (
-          <Ring key={i} position={pos} />
-        ))}
-      </group>
-      <group position={[0, 0, 0]}>
-        <Plane ref={planeRef} />
-      </group>
+      <Plane ref={planeRef} />
+      {rings.map((position, index) => (
+        <Ring key={index} position={position} />
+      ))}
     </>
   )
 }
