@@ -32,7 +32,7 @@ export function Terrain() {
     >
       <primitive object={geometry} />
       <meshStandardMaterial
-        color="#7CB342"
+        color="#4a8505"
         metalness={0.1}
         roughness={0.8}
         wireframe={false}
